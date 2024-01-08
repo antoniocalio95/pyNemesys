@@ -6,6 +6,7 @@ Created on Mon Jan  8 12:28:30 2024
 """
 
 import time
+import sys
 from ctypes import *
 
 # EPOS Command Library path
@@ -36,37 +37,83 @@ class Nemesys:
         timeout = 500
         keyHandle = epos.VCS_OpenDevice(deviceName, protocolStackName, interfaceName, portName, byref(pErrorCode)) # specify EPOS version and interface
         epos.VCS_SetProtocolStackSettings(keyHandle, baudrate, timeout, byref(pErrorCode)) # set baudrate and timeout
-        return keyHandle
+        if pErrorCode.value == 0:
+            return keyHandle
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Close CAN bus
     def CanBusClose(self):
         pErrorCode = c_uint()
-        return epos.VCS_CloseDevice(self.keyHandle, byref(pErrorCode)) # close device
+        if pErrorCode.value == 0:
+            return epos.VCS_CloseDevice(self.keyHandle, byref(pErrorCode)) # close device
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Initialize pump object and enable drive
     def NemesysInit(self):
         pErrorCode = c_uint()
         epos.VCS_ClearFault(self.keyHandle, self.nodeID, byref(pErrorCode)) # clear all faults
-        return epos.VCS_SetEnableState(self.keyHandle, self.nodeID, byref(pErrorCode)) # enable device
+        
+        if pErrorCode.value == 0:
+            return epos.VCS_SetEnableState(self.keyHandle, self.nodeID, byref(pErrorCode)) # enable device
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Disable pump device
     def NemesysDisable(self):
         pErrorCode = c_uint()
-        return epos.VCS_SetDisableState(self.keyHandle, self.nodeID, byref(pErrorCode)) # disable device  
+        
+        if pErrorCode.value == 0:
+            return epos.VCS_SetDisableState(self.keyHandle, self.nodeID, byref(pErrorCode)) # disable device  
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Query motor position
     def GetPositionIs(self):
         pPositionIs = c_long()
         pErrorCode = c_uint()
         ret = epos.VCS_GetPositionIs(self.keyHandle, self.nodeID, byref(pPositionIs), byref(pErrorCode))
-        return pPositionIs.value # motor steps
+        
+        if pErrorCode.value == 0:
+            return pPositionIs.value # motor steps
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Query motor velocity
     def GetVelocityIs(self):
         pVelocityIs = c_long()
         pErrorCode = c_uint()
         ret = epos.VCS_GetVelocityIs(self.keyHandle, self.nodeID, byref(pVelocityIs), byref(pErrorCode))
-        return pVelocityIs.value # motor speed
+        
+        if pErrorCode.value == 0:
+            return pVelocityIs.value # motor speed
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Homing move at the positive limit switch
     def ReferencePosLim(self, wait = True):
@@ -85,7 +132,15 @@ class Nemesys:
             while truePosition != 0:
                 truePosition = self.GetPositionIs()
                 print('\rMotor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (truePosition/self.ul, self.GetVelocityIs()/self.uls, self.IsMoving(), self.TargetReached(), self.IsValveOpen()), end='', flush = True)
-        return pErrorCode
+        
+        if pErrorCode.value == 0:
+            return pErrorCode
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
             
     # Homing move at the negative limit switch
     def ReferenceNegLim(self, wait = True):
@@ -104,7 +159,15 @@ class Nemesys:
             while truePosition != homePosition:
                 truePosition = self.GetPositionIs()
                 print('\rMotor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (truePosition/self.ul, self.GetVelocityIs()/self.uls, self.IsMoving(), self.TargetReached(), self.IsValveOpen()), end='', flush = True)
-        return pErrorCode
+        
+        if pErrorCode.value == 0:
+            return pErrorCode
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Move to position at speed
     def MoveToPositionSpeed(self, targetPosition, targetSpeed, wait = True):
@@ -123,37 +186,78 @@ class Nemesys:
                     print('\rMotor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (truePosition/self.ul, self.GetVelocityIs()/self.uls, self.IsMoving(), self.TargetReached(), self.IsValveOpen()), end='', flush = True)
         elif targetSpeed == 0:
             epos.VCS_HaltPositionMovement(self.keyHandle, self.nodeID, byref(pErrorCode)) # halt motor
-        return pErrorCode
+        
+        if pErrorCode.value == 0:
+            return pErrorCode
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
             
     # Halt the motor
     def Halt(self):
         pErrorCode = c_uint()
         epos.VCS_HaltPositionMovement(self.keyHandle, self.nodeID, byref(pErrorCode)) # halt motor
-        return epos.VCS_ClearFault(self.keyHandle, self.nodeID, byref(pErrorCode)) # clear all faults
+        epos.VCS_ClearFault(self.keyHandle, self.nodeID, byref(pErrorCode)) # clear all faults
+        
+        if pErrorCode.value == 0:
+            return 1
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Check if motor has reached target
     def TargetReached(self):
         pErrorCode = c_uint()
         pTargetReached = c_long()
         epos.VCS_GetMovementState(self.keyHandle, self.nodeID, byref(pTargetReached), byref(pErrorCode))
-        return bool(pTargetReached.value)
+        
+        if pErrorCode.value == 0:
+            return bool(pTargetReached.value)
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Check if motor is moving
     def IsMoving(self):
         pErrorCode = c_uint()
         pVelocityIs = c_long()
         epos.VCS_GetVelocityIs(self.keyHandle, self.nodeID, byref(pVelocityIs), byref(pErrorCode))
-        return bool(pVelocityIs)
         
+        if pErrorCode.value == 0:
+            return bool(pVelocityIs)
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
+            
     # Check if valve is open
     def IsValveOpen(self):
         pErrorCode = c_uint()
         current_state = c_ushort()
         epos.VCS_GetAllDigitalOutputs(self.keyHandle, self.nodeID, byref(current_state), byref(pErrorCode)) # Get digital output word
-        if (current_state.value & 0x1000) == 0x1000:
-            return True
+        
+        if pErrorCode.value == 0:
+            if (current_state.value & 0x1000) == 0x1000:
+                return True
+            else:
+                return False
         else:
-            return False
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Switching of the 2-way valve connected to digital outputs C and D (bit 13 and 12, see Cetoni documentation)
     def SwitchValve(self):
@@ -167,11 +271,19 @@ class Nemesys:
         newstate = c_ushort(current_state.value ^ 0x2000) # Flip bit 13
         ret = epos.VCS_SetAllDigitalOutputs(self.keyHandle, self.nodeID, newstate, byref(pErrorCode)) # Send new digital output word
         time.sleep(0.01)
-        if (newstate.value & 0x1000) == 0x1000:
-            print("\nValve has been opened!")
+        
+        if pErrorCode.value == 0:
+            if (newstate.value & 0x1000) == 0x1000:
+                print("\nValve has been opened!")
+            else:
+                print("\nValve has been closed!")
+            return ret  
         else:
-            print("\nValve has been closed!")
-        return ret  
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
     
     # Get internal data for conversions
     def GetConvData(self):
@@ -189,17 +301,25 @@ class Nemesys:
         qc_to_ul = int(qc_to_mm / ((3.14 * (3.2574**2))/4))
         rpm_to_mms = int((60 * (gearnum.value/geardenom.value)) / (10**velexp.value))
         rpm_to_uls = int(rpm_to_mms / ((3.14 * (3.2574**2))/4))
-        return qc_to_ul, rpm_to_uls
+        
+        if pErrorCode.value == 0:
+            return qc_to_ul, rpm_to_uls
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            sys.exit("An Error has occurred, exiting...")
 
 
 pumpA = Nemesys(2)
 pumpB = Nemesys(3)
 
-pumpA.ReferencePosLim()
+pumpA.ReferencePosLim(False)
 pumpB.ReferencePosLim()
 
-pumpA.MoveToPositionSpeed(-100, 50)
-pumpB.MoveToPositionSpeed(-100, 50)
+pumpA.MoveToPositionSpeed(-50, 50, False)
+pumpB.MoveToPositionSpeed(-50, 50)
 
 pumpA.ReferencePosLim(False)
 pumpB.ReferencePosLim()
