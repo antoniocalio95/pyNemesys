@@ -4,77 +4,85 @@
 #
 # Copyright (c) 2015-2023 Beamline Control Unit, ESRF
 # Distributed under the GNU LGPLv3. See LICENSE for more info.
+# Author: Antonino Calio'
 
 from bliss.controllers.motor import Controller
-from bliss.common.axis import AxisState
 from pyNemesys_linux import Nemesys
 
 
-class TangoMotorController(Controller):
+class Cetoni_Nemesys(Controller):
     """
-    Controller for tango motor
+    Controller for Cetoni Nemesys syringe pumps
     """
 
     def __init__(self, config, *args, **kwargs):
-        tango_server_config = config.get("tango-server")
-        self._tango_name = tango_server_config.get("tango_name")
-        if self._tango_name is None:
-            raise RuntimeError('Missing key "tango_name"')
-        self._proxy = None
+        nem_config = config.get("cetoni_nemesys")
+        self._name = nem_config.get("name")
+        self._node = nem_config.get("node")
+        self._port = nem_config.get("url")
+        self._stroke = nem_config.get("syringe_stroke")
+        self._diameter = nem_config.get("syringe_diameter")
+        self.pump = Nemesys(self._node, self._port, self._stroke, self._diameter)
+
         super().__init__(*args, **kwargs)
 
     def _initialize(self):
-        self._proxy = DeviceProxy(self._tango_name)
-        try:
-            self._proxy.ping()
-        except DevFailed:
-            self._proxy = None
-            raise
+        return self.pump._nemesys_init()
+    
+    def finalize(self):
+        self.pump._nemesys_disable()
+        return self.pump._bus_close()
 
-    def initialize_axis(self, axis):
-        self._proxy.initialize_axis(axis.name)
+    def initialize_axis(self):
+        pass
 
-    def get_axis_info(self, axis):
-        return self._proxy.get_axis_info(axis.name)
+    def get_axis_info(self):
+        return self.pump._print_info
 
-    def read_position(self, axis):
-        return self._proxy.read_position(axis.name)
+    def read_position(self):
+        return self.pump._get_position
 
-    def set_position(self, axis, new_position):
-        self._proxy.set_position(f"{axis.name} {new_position}")
-        return self.read_position(axis)
+    def set_position(self, new_position):
+        self.pump._move_at_set_speed(new_position)
+        return self.pump._print_info
 
     def read_acceleration(self, axis):
-        return self._proxy.read_acceleration(axis.name)
+        pass
 
     def set_acceleration(self, axis, new_acceleration):
-        self._proxy.set_acceleration(f"{axis.name} {new_acceleration}")
-        return self.read_acceleration(axis)
+        pass
 
     def read_velocity(self, axis):
-        return self._proxy.read_velocity(axis.name)
+        return self.pump._get_set_speed()
 
-    def set_velocity(self, axis, new_velocity):
-        self._proxy.set_velocity(f"{axis.name} {new_velocity}")
-        return self.read_velocity(axis)
+    def set_velocity(self, new_velocity):
+        self.pump._set_speed(new_velocity)
+        return self.pump._get_set_speed()
 
     def state(self, axis):
-        _state = self._proxy.axis_state(axis.name)
-        if _state == DevState.ON:
-            log_debug(self, f"{axis.name} READY")
-            return AxisState("READY")
-        if _state == DevState.MOVING:
-            log_debug(self, f"{axis.name} MOVING")
-            return AxisState("MOVING")
-        if _state == DevState.DISABLE:
-            log_debug(self, f"{axis.name} DISABLED")
-            return AxisState("DISABLED")
-        return AxisState("READY")
+        return self.pump._pump_state()
     
-    def start_one(self, motion):
-        """This is he command that actually moves the motor"""
-        self._proxy.start_one(motion.target_pos).decode()
+    def start_one(self, new_position, new_velocity):
+        self.pump._move_to_position_speed(new_position, new_velocity)
     
-    def stop(self, axis):
-        self._proxy.stop(axis.name)
+    def stop(self):
+        self.pump._halt()
+        
+    def home(self):
+        return self.pump._reference_pos_lim()
+    
+    def home_neg_lim(self):
+        return self.pump._reference_neg_lim()
+    
+    def is_moving(self):
+        return self.pump._is_moving()
+    
+    def is_target_reached(self):
+        return self.pump._is_target_reached()
+    
+    def is_valve_open(self):
+        return self.pump._is_valve_open()
+    
+    def switch_valve(self):
+        return self.pump._switch_valve()
 
