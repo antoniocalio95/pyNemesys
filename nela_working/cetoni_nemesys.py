@@ -35,7 +35,7 @@ class Cetoni_Nemesys(Controller):
         pass
 
     def get_axis_info(self):
-        return self.pump._print_info()
+        return self.pump._pump_state()
 
     def read_position(self):
         return self.pump._get_position()/self.pump.ul
@@ -53,12 +53,15 @@ class Cetoni_Nemesys(Controller):
     def read_velocity(self):
         return self.pump._get_set_speed()
 
+    def read_inst_velocity(self):
+        return self.pump._get_velocity()/self.pump.uls
+
     def set_velocity(self, new_velocity):
         self.pump._set_speed(new_velocity)
         return self.pump._get_set_speed()
 
     def state(self):
-        return self.pump._pump_state()
+        return self.pump._get_state()
 
     def start_one(self):
         pass
@@ -67,7 +70,7 @@ class Cetoni_Nemesys(Controller):
         curr_vol = int(self.pump._get_position()/self.pump.ul)
         new_vol = -abs(new_volume)
         if (curr_vol + new_vol) >= -500:
-            self.pump._move_to_position_speed((curr_vol + new_vol), new_velocity)
+            self.pump._move_to_position_speed((curr_vol + new_vol), new_velocity, wait = False)
         else:
             print("\nThe syringe is too full, aspirate less or empty it!\n")
 
@@ -75,7 +78,7 @@ class Cetoni_Nemesys(Controller):
         curr_vol = int(self.pump._get_position()/self.pump.ul)
         new_vol = abs(new_volume)
         if (curr_vol + new_vol) <= 0:
-            self.pump._move_to_position_speed((curr_vol + new_vol), new_velocity)
+            self.pump._move_to_position_speed((curr_vol + new_vol), new_velocity, wait = False)
         else:
             print("\nThe syringe does not contain enough liquid, dose less or fill it up!\n")
     
@@ -83,10 +86,10 @@ class Cetoni_Nemesys(Controller):
         self.pump._halt()
         
     def home(self):
-        return self.pump._reference_pos_lim()
+        return self.pump._reference_pos_lim(wait = False)
     
     def home_neg_lim(self):
-        return self.pump._reference_neg_lim()
+        return self.pump._reference_neg_lim(wait = False)
     
     def is_moving(self):
         return self.pump._is_moving()

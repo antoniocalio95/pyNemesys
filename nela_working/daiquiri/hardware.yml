@@ -1,0 +1,247 @@
+component: hardware
+
+# Protocol handlers to initialise
+protocols:
+  - id:  bliss
+    type: bliss
+
+#  - id: hwr
+#    type: hwr
+#    path: MyPath
+
+# Hardware groups
+groups:
+  - name: Mini hutch slits
+    groupid: mh_slits
+    description: EX Mini Hutch motors
+    objects:
+      - smha
+      - smva
+      - smht
+      - smvt
+
+# Hardware objects
+objects:
+  - name: psu
+    id: psu
+    protocol: bliss
+    address: psu
+
+  - name: psd
+    id: psd
+    protocol: bliss
+    address: psd
+
+  - name: psf
+    id: psf
+    protocol: bliss
+    address: psf
+
+  - name: psb
+    id: psb
+    protocol: bliss
+    address: psb
+# ---------------------------------------------
+  - name: psvg
+    id: psvg
+    protocol: bliss
+    address: psvg
+
+  - name: pshg
+    id: pshg
+    protocol: bliss
+    address: pshg
+
+  - name: psvo
+    id: psvo
+    protocol: bliss
+    address: psvo
+
+  - name: psho
+    id: psho
+    protocol: bliss
+    address: psho
+# ---------------------------------------------
+  - name: Minihutch horizontal aperture
+    id: smha
+    protocol: bliss
+    address: smha
+
+  - name: Minihutch vertical aperture
+    id: smva
+    protocol: bliss
+    address: smva
+
+  - name: Minihutch horizontal translation
+    id: smht
+    protocol: bliss
+    address: smht
+
+  - name: Minihutch vertical translation
+    id: smvt
+    protocol: bliss
+    address: smvt
+# ---------------------------------------------
+  - name: EH Slit1 horizontal aperture
+    id: s1ha
+    protocol: bliss
+    address: s1ha
+
+  - name: EH Slit1 vertical aperture
+    id: s1va
+    protocol: bliss
+    address: s1va
+
+  - name: EH Slit1 horizontal translation
+    id: s1ht
+    protocol: bliss
+    address: s1vt
+
+  - name: EH Slit1 vertical translation
+    id: s1vt
+    protocol: bliss
+    address: s1vt
+# ---------------------------------------------
+  - name: EH Slit2 horizontal aperture
+    id: s2ha
+    protocol: bliss
+    address: s1ha
+
+  - name: EH Slit2 vertical aperture
+    id: s2va
+    protocol: bliss
+    address: s2va
+
+  - name: EH Slit2 horizontal translation
+    id: s2ht
+    protocol: bliss
+    address: s2vt
+
+  - name: EH Slit2 vertical translation
+    id: s2vt
+    protocol: bliss
+    address: s2vt
+# ---------------------------------------------
+  - name: Beamstop Y
+    id: bsy
+    protocol: bliss
+    address: bsy
+
+  - name: Beamstop Z
+    id: bsz
+    protocol: bliss
+    address: bsz
+
+#  -----------------------------------------
+  - name: Sample Y
+    id: sy
+    protocol: bliss
+    address: sy
+
+  - name: Sample Z
+    id: sz
+    protocol: bliss
+    address: sz
+
+#  -----------------------------------------
+  - name: Detector Cover
+    id: detcover
+    protocol: bliss
+    address: detcover
+#  -----------------------------------------
+
+  - name: Energy
+    id: energy
+    protocol: bliss
+    address: energy
+
+  - name: Wavelength
+    id: wavelength
+    protocol: bliss
+    address: wavelength
+
+  - name: Transmission
+    id: transmission
+    protocol: bliss
+    address: transmission
+
+  - name: CBM20
+    id: cbm20
+    protocol: bliss
+    address: cbm20
+
+  - name: Valve load
+    id: valveload
+    protocol: bliss
+    address: valveload
+
+  - name: Valve Inject
+    id: valveinject
+    protocol: bliss
+    address: valveinject
+
+  - name: PDA
+    id: pda
+    protocol: bliss
+    address: pda
+
+  - name: Front End
+    id: frontend
+    protocol: bliss
+    address: frontend
+
+  - name: Fast shutter
+    id: fast_shutter
+    protocol: bliss
+    address: fshut
+    
+  - name: Safety shutter
+    id: safety_shutter
+    protocol: bliss
+    address: safshut
+  
+  - name: Ring Curent
+    id: ring_current
+    protocol: bliss
+    address: fecurr
+
+  - name: Beamstop
+    id: beamstop
+    protocol: bliss
+    address: beamstop
+
+  - name: Piezo X
+    id: chipx
+    protocol: bliss
+    address: chipx
+
+  - name: Piezo Y
+    id: chipy
+    protocol: bliss
+    address: chipy
+
+  - name: Piezo Z
+    id: chipz
+    protocol: bliss
+    address: chipz
+
+  - name: Pump A
+    id: pumpA
+    protocol: bliss
+    address: pumpA
+
+  - name: Pump B
+    id: pumpB
+    protocol: bliss
+    address: pumpB
+
+  # - name: Diode
+  #   id: diode
+  #   protocol: bliss
+  #   address: k_dbs
+
+  # - name: omega_1
+  #   id: omega_1
+  #   protocol: hwr
+  #   address: omega
+  #   type: motor

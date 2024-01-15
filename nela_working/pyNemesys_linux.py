@@ -409,6 +409,30 @@ class Nemesys:
             epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
             print("PumpID: "+str(self.nodeID)+" Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
             print("An Error has occurred, exiting...")
+
+    def _get_state(self):
+        pErrorCode = c_uint()
+        pState = c_uint16()
+        epos.VCS_GetState(self.keyHandle, self.nodeID, byref(pState), byref (pErrorCode))
+        if pErrorCode.value == 0:
+            if pState.value == 0:
+                print("Pump %1d state: DISABLED" %self.nodeID)
+                return 0
+            if pState.value == 1:
+                print("Pump %1d state: ENABLED" %self.nodeID)
+                return 1
+            if pState.value == 2:
+                print("Pump %1d state: QUICKSTOP" %self.nodeID)
+                return 2
+            if pState.value == 3:
+                print("Pump %1d state: FAULT" %self.nodeID)
+                return 3
+        else:
+            err_str = create_string_buffer(256)
+            str_len = c_uint16(256)
+            epos.VCS_GetErrorInfo(pErrorCode,byref(err_str),byref(str_len))
+            print("PumpID: "+str(self.nodeID)+" Error Code = "+hex(pErrorCode.value)+" Error Info: "+err_str.value.decode())
+            print("An Error has occurred, exiting...")
         
 """
 Test code
