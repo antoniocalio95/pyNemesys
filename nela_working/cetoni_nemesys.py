@@ -17,22 +17,25 @@ class Cetoni_Nemesys(Controller):
 
     def __init__(self, config, *args, **kwargs):
         super().__init__(config, *args, **kwargs)
-        self._name = config.get("name")
+        self._name = config.get("name")	
         self._node = config.get("node")
-        self._port = str(config.get("url"))
         self._stroke = config.get("syringe_stroke")
-        self._diameter = config.get("syringe_diameter")
-        self.pump = Nemesys(self._node, b'/dev/ttyS0', self._stroke, self._diameter)
+        self._diameter = config.get("syringe_diameter")    
+        self.pump = Nemesys(self._node, b'/dev/ttyS4' , self._stroke, self._diameter)
+        self.state()
 
     def _initialize(self):
         return self.pump._nemesys_init()
     
     def finalize(self):
         self.pump._nemesys_disable()
-        return self.pump._bus_close()
+        self.pump._bus_close()
+        self.pump = []
+        return 0
 
-    def initialize_axis(self):
-        pass
+    def initialize_axis(self):   
+        self.pump = Nemesys(self._node, self._comm_thread._target_link, self._stroke, self._diameter)
+        return self.state()
 
     def get_axis_info(self):
         return self.pump._pump_state()
@@ -66,19 +69,25 @@ class Cetoni_Nemesys(Controller):
     def start_one(self):
         pass
     
-    def aspirate(self, new_volume, new_velocity):
+    def aspirate(self, new_values):
+        if self.is_valve_open():
+            self.switch_valve()
+
         curr_vol = int(self.pump._get_position()/self.pump.ul)
-        new_vol = -abs(new_volume)
+        new_vol = -abs(new_values[0])
         if (curr_vol + new_vol) >= -500:
-            self.pump._move_to_position_speed((curr_vol + new_vol), new_velocity, wait = False)
+            self.pump._move_to_position_speed((curr_vol + new_vol), new_values[1], wait = False)
         else:
             print("\nThe syringe is too full, aspirate less or empty it!\n")
 
-    def dose(self, new_volume, new_velocity):
+    def dose(self, new_values):
+        if self.is_valve_open() == False:
+            self.switch_valve()
+
         curr_vol = int(self.pump._get_position()/self.pump.ul)
-        new_vol = abs(new_volume)
+        new_vol = abs(new_values[0])
         if (curr_vol + new_vol) <= 0:
-            self.pump._move_to_position_speed((curr_vol + new_vol), new_velocity, wait = False)
+            self.pump._move_to_position_speed((curr_vol + new_vol), new_values[1], wait = False)
         else:
             print("\nThe syringe does not contain enough liquid, dose less or fill it up!\n")
     
@@ -102,4 +111,3 @@ class Cetoni_Nemesys(Controller):
     
     def switch_valve(self):
         return self.pump._switch_valve()
-
