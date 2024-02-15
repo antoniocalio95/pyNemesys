@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from marshmallow import fields
+from marshmallow import Schema, fields
 
 from daiquiri.core.hardware.abstract import HardwareObject
 from daiquiri.core.schema.hardware import HardwareSchema
@@ -23,9 +23,14 @@ class NemesysPropertiesSchema(HardwareSchema):
     target_reached = fields.Bool()
     
 
+class NemesysDoseAspirateSchema(HardwareSchema):
+    volume = fields.Float()
+    flow_rate = fields.Float()
+
 
 class NemesysCallablesSchema(HardwareSchema):
     initialize = RequireEmpty()
+    enable = RequireEmpty()
     stop = RequireEmpty()
     state = RequireEmpty()
     info = RequireEmpty()
@@ -36,7 +41,7 @@ class NemesysCallablesSchema(HardwareSchema):
     aspirate = fields.List(fields.Float(), metadata={"many": True})
     dose = fields.List(fields.Float(), metadata={"many": True})
 
-    
+
 class Cetoni_Nemesys(HardwareObject):
     _type = "cetoni_nemesys"
     _state_ok = [PumpStates[1]]
