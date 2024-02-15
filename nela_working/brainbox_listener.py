@@ -10,66 +10,70 @@ import os
 import pty
 import socket
 import select
-import threading
+import signal
 
-from bliss.controllers.motor import Controller
-from bliss.config.static import get_config
+#Communication task for brainbox serial to ethernet interface
 
-
-#Communication thread for brainbox serial to ethernet interface
-
-class Brainbox_Listener(threading.Thread, Controller):
-
-    def __init__(self, config, *args, **kwargs):
-        super().__init__(config, *args, **kwargs)
-        threading.Thread.__init__(self, target = self.socktopty, args = (self, ))
+class Brainbox_Listener:
+    def __init__(self):
         self._name = "brainbox1"
-        self._target = b'/dev/ttyS4'
-        self._lhost = "lbm29brainbox1.esrf.fr"
-        self._lport = 9001
-        self._stop_event = threading.Event()
+        self._target = "/dev/ttyS4"
+        self._url = "lbm29brainbox1"
+        self._port = 9001
+        self._socket = None
+        self._run = True
 
-    def run(self):
-        self.socktopty()
-        
-    def stop(self):
-        self._stop_event.set()
+    def handler_stop_signals(self, signum, frame):
+        self._run = False
 
-    def is_stopped(self):
-        return self._stop_event.is_set()
-    
     def socktopty(self):
-        
-        if os.path.exists(self._target_link.decode()):
-            os.unlink(self._target_link.decode())
-        
+        target_link = self._target
+        if os.path.exists(target_link):
+            os.unlink(target_link)
+
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self._lhost, self._lport))
+            self._socket = socket.create_connection((self._url,self._port))
+            sockfd = self._socket.fileno()
             master, slave = pty.openpty()
-        except:
-            print("Coudn't open TTY to TCP connection")
+            os.symlink(os.ttyname(slave), target_link)
+            os.chmod(target_link, 0o0777)
+            os.chown(target_link,1129,1664)
+            print("TTY: Opened "+os.ttyname(slave)+" as "+target_link)
 
-        os.symlink(str(os.ttyname(slave)),self._target_link.decode())
-        print('TTY: Opened {} as {} for {}:{}'.format(os.ttyname(slave), self._target_link.decode(), self._lhost, self._lport))
-
-        mypoll = select.poll()
-        mypoll.register(s, select.POLLIN)
-        mypoll.register(master, select.POLLIN)
-        
-        try:
-            while not self.is_stopped():
-                fdlist = mypoll.poll(1000)
-                for fd,event in fdlist:
-                    data = os.read(fd, 4096)
-                    write_fd = s.fileno() if fd == master else master
-                    os.write(write_fd, data)
-        finally:
-            if os.path.exists(self._target_link.decode()):
-                os.unlink(self._target_link.decode())
-            s.close()
+        except Exception as e:
+            if os.path.exists(target_link):
+                os.unlink(target_link)
             os.close(master)
             os.close(slave)
+            self._socket.close()
+            print("Couldn't open TTY to TCP connection: "+e)
+            return
+
+        poll = select.poll()
+
+        try:
+            poll.register(sockfd, select.POLLIN)
+            poll.register(master, select.POLLIN)
+
+            while self._run:
+                events = poll.poll(1000)
+
+                for fd, event in events:
+                    data = os.read(fd,4096)
+                    write_fd = sockfd if fd == master else master
+                    os.write(write_fd,data)
+
+        finally:
+            poll.unregister(sockfd)
+            poll.unregister(master)
+            if os.path.exists(target_link):
+                os.unlink(target_link)
+            os.close(master)
+            os.close(slave)
+            self._socket.close()
             print("Closing TTY to TCP connection")
             
 
+bb = Brainbox_Listener()
+signal.signal(signal.SIGTERM, bb.handler_stop_signals)
+bb.socktopty()

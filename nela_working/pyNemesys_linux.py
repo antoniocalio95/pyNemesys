@@ -9,12 +9,7 @@
 # Python wrapper for the Maxon EPOS2 command library, to control Cetoni Nemesys Low Pressure syring pumps
 
 import time
-import sys
-import os
-import pty
-import socket
-import select
-import threading
+
 from ctypes import *
 
 # EPOS Command Library path
@@ -54,7 +49,7 @@ class Nemesys:
         interfaceName = b'RS232'
         portName = port
         baudrate = 115200
-        timeout = 500
+        timeout = 1000
         try:
             keyHandle = epos.VCS_OpenDevice(deviceName, protocolStackName, interfaceName, portName, byref(pErrorCode)) # specify EPOS version and interface
             if not keyHandle:
@@ -120,7 +115,7 @@ class Nemesys:
         pVelocityIs = c_int32()
         pErrorCode = c_uint()
         try:
-            if not epos.VCS_GetVelocityIs(self.keyHandle, self.nodeID, byref(pVelocityIs), byref(pErrorCode)):
+            if not epos.VCS_GetVelocityIsAveraged(self.keyHandle, self.nodeID, byref(pVelocityIs), byref(pErrorCode)):
                 raise Exception("An Error has occurred, exiting...")
         except:
             self._error(pErrorCode)
@@ -154,7 +149,7 @@ class Nemesys:
         if wait == True:
             while truePosition != 0:
                 truePosition = self._get_position()
-                print('\rPumpID: %1d Motor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
+                print('\rPumpID: %1d Motor position: %5d ul Velocity: %3.2f ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
         return pErrorCode.value
             
     # Homing move at the negative limit switch
@@ -185,7 +180,7 @@ class Nemesys:
         if wait == True:
             while truePosition != homePosition:
                 truePosition = self._get_position()
-                print('\rPump ID: %1d Motor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
+                print('\rPump ID: %1d Motor position: %5d ul Velocity: %3.2f ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
         return pErrorCode.value
     
     # Move to position at speed
@@ -200,21 +195,23 @@ class Nemesys:
         acceleration = 200000 # rpm/s, up to 1e7 would be possible
         deceleration = 200000 # rpm/s
         truePosition = self._get_position()
+        newpos = c_int32(int(targetPosition*self.ul))
+        newvel = c_uint32(int(targetSpeed*self.uls))
         if targetSpeed != 0:
             try:
-                if not epos.VCS_SetPositionProfile(self.keyHandle, self.nodeID, targetSpeed*self.uls, acceleration, deceleration, byref(pErrorCode)): # set profile parameters
+                if not epos.VCS_SetPositionProfile(self.keyHandle, self.nodeID, newvel.value, acceleration, deceleration, byref(pErrorCode)): # set profile parameters
                     raise Exception("An Error has occurred, exiting...")
             except:
                 self._error(pErrorCode)
             try:
-                if not epos.VCS_MoveToPosition(self.keyHandle, self.nodeID, c_int32(targetPosition*self.ul), True, True, byref(pErrorCode)): # move to position
+                if not epos.VCS_MoveToPosition(self.keyHandle, self.nodeID, newpos.value, True, True, byref(pErrorCode)): # move to position
                     raise Exception("An Error has occurred, exiting...")
             except:
                 self._error(pErrorCode)
             if wait == True:
                 while truePosition != targetPosition*self.ul:
                     truePosition = self._get_position()
-                    print('\rPump ID: %1d Motor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
+                    print('\rPump ID: %1d Motor position: %5d ul Velocity: %3.2f ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
         elif targetSpeed == 0:
             try:
                 if not epos.VCS_HaltPositionMovement(self.keyHandle, self.nodeID, byref(pErrorCode)): # halt motor
@@ -237,9 +234,10 @@ class Nemesys:
         pVelocity = c_uint32()
         pAcc = c_uint32()
         pDec = c_uint32()
+        newvel = c_uint32(int(targetSpeed*self.uls))
         if targetSpeed != 0:
             try:
-                if not epos.VCS_SetPositionProfile(self.keyHandle, self.nodeID, targetSpeed*self.uls, acceleration, deceleration, byref(pErrorCode)): # set profile parameters
+                if not epos.VCS_SetPositionProfile(self.keyHandle, self.nodeID, newvel.value, acceleration, deceleration, byref(pErrorCode)): # set profile parameters
                     raise Exception("An Error has occurred, exiting...")
             except:
                 self._error(pErrorCode)
@@ -248,7 +246,7 @@ class Nemesys:
                     raise Exception("An Error has occurred, exiting...")
             except:
                 self._error(pErrorCode)
-            print('\nPump ID: %1d New set velocity value: %5d ul/s \n' % (self.nodeID, pVelocity.value/self.uls))
+            print('\nPump ID: %1d New set velocity value: %3.2f ul/s \n' % (self.nodeID, pVelocity.value/self.uls))
         elif targetSpeed == 0:
             try:
                 if not epos.VCS_HaltPositionMovement(self.keyHandle, self.nodeID, byref(pErrorCode)): # halt motor
@@ -276,7 +274,7 @@ class Nemesys:
                     raise Exception("An Error has occurred, exiting...")
             except:
                 self._error(pErrorCode)
-            print('\nPump ID: %1d Set velocity value: %5d ul/s \n' % (self.nodeID, pVelocity.value/self.uls))
+            print('\nPump ID: %1d Set velocity value: %3.2f ul/s \n' % (self.nodeID, pVelocity.value/self.uls))
             return pVelocity.value/self.uls
         else:
             print("\n!! You have to set the speed first !!\n")
@@ -286,6 +284,7 @@ class Nemesys:
     def _move_at_set_speed(self, targetPosition, wait = True):
         pErrorCode = c_uint()
         pMode = c_int8()
+        newpos = c_int32(int(targetPosition*self.ul))
         try:
             if not epos.VCS_GetOperationMode(self.keyHandle, self.nodeID, byref(pMode), byref(pErrorCode)): # Check if device is in profile position mode
                 raise Exception("An Error has occurred, exiting...")
@@ -294,14 +293,14 @@ class Nemesys:
         truePosition = self._get_position()
         if pMode.value == 1:
             try:
-                if not epos.VCS_MoveToPosition(self.keyHandle, self.nodeID, targetPosition*self.ul, True, True, byref(pErrorCode)): # move to position
+                if not epos.VCS_MoveToPosition(self.keyHandle, self.nodeID, newpos.value, True, True, byref(pErrorCode)): # move to position
                     raise Exception("An Error has occurred, exiting...")
             except:
                 self._error(pErrorCode)
             if wait == True:
                 while truePosition != targetPosition*self.ul:
                     truePosition = self._get_position()
-                    print('\rPump ID: %1d Motor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
+                    print('\rPump ID: %1d Motor position: %5d ul Velocity: %3.2f ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s' % (self.nodeID, truePosition/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
         else:
             print("\n!! You have to set the speed first !!\n")
         return pErrorCode.value
@@ -431,7 +430,7 @@ class Nemesys:
         return qc_to_ul, rpm_to_uls
 
     def _print_info(self):
-        print('\nPumpID: %1d Motor position: %5d ul Velocity: %5d ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s\n' % (self.nodeID, self._get_position()/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
+        print('\nPumpID: %1d Motor position: %5d ul Velocity: %3.2f ul/s Moving: %5s  Target Reached: %5s  Valve open: %5s\n' % (self.nodeID, self._get_position()/self.ul, self._get_velocity()/self.uls, self._is_moving(), self._is_target_reached(), self._is_valve_open()), end='', flush = True)
         return 0
     
     def _pump_state(self):
@@ -443,7 +442,7 @@ class Nemesys:
         except:
             self._error(pErrorCode)
         if pMode.value == 1:
-            print("Pump %d is in Profile Position Mode, the set speed is %5d ul/s" % (self.nodeID, self._get_set_speed()))
+            print("Pump %d is in Profile Position Mode, the set speed is %3.2f ul/s" % (self.nodeID, self._get_set_speed()))
         elif pMode.value == 6:
             print("Pump %d is in Homing Mode" % self.nodeID)
         else:

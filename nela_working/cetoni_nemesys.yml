@@ -1,0 +1,20 @@
+-
+ controller:
+   class: Cetoni_Nemesys
+   name: pumpA
+   node: 2
+   syringe_stroke: 60
+   syringe_diameter: 3.2574
+   axes:
+     -name: pumpA
+
+-
+ controller:
+   class: Cetoni_Nemesys
+   name: pumpB
+   node: 3
+   syringe_stroke: 60
+   syringe_diameter: 4.6066
+   axes:
+     -name: pumpB
+

@@ -8,6 +8,7 @@
 
 from bliss.controllers.motor import Controller
 from bliss.controllers.motors.pyNemesys_linux import Nemesys
+from bliss.comm.util import get_comm
 
 
 class Cetoni_Nemesys(Controller):
@@ -20,7 +21,8 @@ class Cetoni_Nemesys(Controller):
         self._name = config.get("name")	
         self._node = config.get("node")
         self._stroke = config.get("syringe_stroke")
-        self._diameter = config.get("syringe_diameter")    
+        self._diameter = config.get("syringe_diameter")
+        self._volume = (self._diameter/2)**2 * 3.14 * self._stroke    
         self.pump = Nemesys(self._node, b'/dev/ttyS4' , self._stroke, self._diameter)
         self.state()
 
@@ -34,7 +36,7 @@ class Cetoni_Nemesys(Controller):
         return 0
 
     def initialize_axis(self):   
-        self.pump = Nemesys(self._node, self._comm_thread._target_link, self._stroke, self._diameter)
+        self.pump = Nemesys(self._node, b'/dev/ttyS4', self._stroke, self._diameter)
         return self.state()
 
     def get_axis_info(self):
@@ -69,25 +71,27 @@ class Cetoni_Nemesys(Controller):
     def start_one(self):
         pass
     
-    def aspirate(self, new_values):
+    def aspirate(self, new_values, wait = False):
+        """new_values = list[volume to aspirate, flow rate]"""
         if self.is_valve_open():
             self.switch_valve()
 
         curr_vol = int(self.pump._get_position()/self.pump.ul)
         new_vol = -abs(new_values[0])
-        if (curr_vol + new_vol) >= -500:
-            self.pump._move_to_position_speed((curr_vol + new_vol), new_values[1], wait = False)
+        if (curr_vol + new_vol) >= round(-self._volume // 1):
+            self.pump._move_to_position_speed((curr_vol + new_vol), new_values[1], wait)
         else:
             print("\nThe syringe is too full, aspirate less or empty it!\n")
 
-    def dose(self, new_values):
+    def dose(self, new_values, wait = False):
+        """new_values = list[volume to dose, flow rate]"""
         if self.is_valve_open() == False:
             self.switch_valve()
 
         curr_vol = int(self.pump._get_position()/self.pump.ul)
         new_vol = abs(new_values[0])
         if (curr_vol + new_vol) <= 0:
-            self.pump._move_to_position_speed((curr_vol + new_vol), new_values[1], wait = False)
+            self.pump._move_to_position_speed((curr_vol + new_vol), new_values[1], wait)
         else:
             print("\nThe syringe does not contain enough liquid, dose less or fill it up!\n")
     
