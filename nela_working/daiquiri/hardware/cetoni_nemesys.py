@@ -12,16 +12,17 @@ logger = logging.getLogger(__name__)
 class Cetoni_Nemesys(BlissObject, AbstractNemesys):
     property_map = {
         "state": HardwareProperty("state"),
-        "nodeID": HardwareProperty("nodeID"),
-        "position": HardwareProperty("position"),
-        "velocity": HardwareProperty("velocity"),
-        "is_valve_on": HardwareProperty("is_valve_on"),
+        "nodeID": HardwareProperty("_node"),
+        "position": HardwareProperty("read_position"),
+        "velocity": HardwareProperty("read_inst_velocity"),
+        "is_valve_on": HardwareProperty("is_valve_open"),
         "is_moving": HardwareProperty("is_moving"),
-        "target_reached": HardwareProperty("target_reached"),
+        "target_reached": HardwareProperty("is_target_reached"),
     }
 
     callable_map = {
-        "initialize": "_initialize",
+        "initialize": "initialize_axis",
+        "enable": "_initialize",
         "stop": "stop",
         "state": "state",
         "info": "get_axis_info",
